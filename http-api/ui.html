@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeointPlayback — InSAR Subsidence Viewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a1a; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; }
+        header { background: #111128; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a4a; z-index: 10; }
+        header h1 { font-size: 16px; font-weight: 600; color: #fff; }
+        header .subtitle { font-size: 11px; color: #888; margin-left: 12px; }
+        .app { display: flex; flex: 1; overflow: hidden; position: relative; }
+        #map { flex: 1; }
+        .panel { position: absolute; top: 10px; left: 10px; width: 320px; background: rgba(17,17,40,0.95); border: 1px solid #2a2a4a; border-radius: 8px; z-index: 5; max-height: calc(100vh - 80px); overflow-y: auto; }
+        .panel h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #aaa; padding: 12px 16px 8px; }
+        .panel-section { padding: 8px 16px 12px; border-bottom: 1px solid #1e1e3a; }
+        .panel-section:last-child { border-bottom: none; }
+        label { display: block; font-size: 11px; color: #888; margin-bottom: 4px; }
+        input[type="text"], input[type="date"], select { width: 100%; padding: 6px 8px; background: #1a1a3a; border: 1px solid #333; border-radius: 4px; color: #ddd; font-size: 12px; margin-bottom: 8px; }
+        button { background: #4a44cc; color: #fff; border: none; border-radius: 4px; padding: 7px 14px; font-size: 12px; cursor: pointer; transition: background 0.15s; }
+        button:hover { background: #3d38b0; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        button.secondary { background: #2a2a4a; color: #ccc; }
+        button.secondary:hover { background: #3a3a5a; }
+        .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+        .site-btn { display: block; width: 100%; text-align: left; background: #1a1a3a; border: 1px solid #2a2a4a; border-radius: 4px; padding: 8px 10px; color: #ccc; font-size: 11px; cursor: pointer; margin-bottom: 6px; transition: border-color 0.15s; }
+        .site-btn:hover { border-color: #4a44cc; }
+        .site-btn .site-name { font-weight: 600; color: #fff; font-size: 12px; }
+        .site-btn .site-desc { color: #888; margin-top: 2px; }
+        .playback-bar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(17,17,40,0.95); border: 1px solid #2a2a4a; border-radius: 8px; padding: 10px 20px; display: none; align-items: center; gap: 12px; z-index: 5; min-width: 500px; }
+        .playback-bar.visible { display: flex; }
+        .playback-bar button { padding: 6px 12px; }
+        .playback-bar input[type="range"] { flex: 1; accent-color: #4a44cc; min-width: 200px; }
+        .playback-bar .frame-info { font-size: 11px; color: #aaa; min-width: 160px; white-space: nowrap; }
+        .status-bar { position: absolute; bottom: 20px; right: 20px; background: rgba(17,17,40,0.9); border: 1px solid #2a2a4a; border-radius: 6px; padding: 8px 14px; font-size: 11px; color: #888; z-index: 5; max-width: 300px; }
+        .status-bar .value { color: #4a44cc; font-weight: 600; }
+        .legend { position: absolute; bottom: 70px; right: 20px; background: rgba(17,17,40,0.9); border: 1px solid #2a2a4a; border-radius: 6px; padding: 10px 14px; z-index: 5; display: none; }
+        .legend.visible { display: block; }
+        .legend h3 { font-size: 11px; color: #aaa; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .legend-gradient { width: 20px; height: 120px; border-radius: 2px; }
+        .legend-labels { display: flex; flex-direction: column; justify-content: space-between; height: 120px; margin-left: 8px; font-size: 10px; color: #aaa; }
+        .legend-row { display: flex; }
+        .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid #444; border-top-color: #4a44cc; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 6px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="display:flex;align-items:baseline">
+            <h1>GeointPlayback</h1>
+            <span class="subtitle">InSAR Ground Subsidence Detection & Playback</span>
+        </div>
+    </header>
+    <div class="app">
+        <div id="map"></div>
+
+        <div class="panel" id="controlPanel">
+            <h2>Area Selection</h2>
+            <div class="panel-section">
+                <label>Bounding Box (W, S, E, N)</label>
+                <input type="text" id="bboxInput" placeholder="-118.38, 34.05, -118.26, 34.07">
+                <label>Or draw on map:</label>
+                <div class="btn-row">
+                    <button id="drawBboxBtn" class="secondary">Draw Rectangle</button>
+                    <button id="clearBboxBtn" class="secondary" disabled>Clear</button>
+                </div>
+            </div>
+
+            <h2>Time Range</h2>
+            <div class="panel-section">
+                <label>Start Date</label>
+                <input type="date" id="startDate" value="2019-01-01">
+                <label>End Date</label>
+                <input type="date" id="endDate" value="2022-12-31">
+                <label>Collection</label>
+                <select id="collection">
+                    <option value="sentinel-1-grd">Sentinel-1 GRD</option>
+                </select>
+            </div>
+
+            <h2>Actions</h2>
+            <div class="panel-section">
+                <div class="btn-row">
+                    <button id="searchBtn" disabled>Search STAC</button>
+                    <button id="processBtn" disabled>Process InSAR</button>
+                </div>
+                <div id="statusText" style="font-size:11px; color:#888; margin-top:8px;"></div>
+            </div>
+
+            <h2>Validation Sites</h2>
+            <div class="panel-section" id="sitesContainer">
+                <div style="font-size:11px; color:#666;">Loading sites...</div>
+            </div>
+        </div>
+
+        <div class="playback-bar" id="playbackBar">
+            <button id="prevBtn" class="secondary">&lt;</button>
+            <button id="playBtn">Play</button>
+            <button id="nextBtn" class="secondary">&gt;</button>
+            <input type="range" id="frameSlider" min="0" max="0" value="0">
+            <div class="frame-info" id="frameInfo">-</div>
+        </div>
+
+        <div class="legend" id="legend">
+            <h3>Displacement (mm)</h3>
+            <div class="legend-row">
+                <canvas id="legendGradient" class="legend-gradient" width="20" height="120"></canvas>
+                <div class="legend-labels">
+                    <span id="legendMax">0</span>
+                    <span>0</span>
+                    <span id="legendMin">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar" id="statusBar">Ready</div>
+    </div>
+
+    <script>
+    (function() {
+        // ── State ──
+        let map;
+        let stacResults = null;
+        let processResult = null;
+        let currentFrame = 0;
+        let playing = false;
+        let playInterval = null;
+        let drawingBbox = false;
+        let bboxStart = null;
+
+        // ── DOM refs ──
+        const bboxInput = document.getElementById('bboxInput');
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
+        const collection = document.getElementById('collection');
+        const searchBtn = document.getElementById('searchBtn');
+        const processBtn = document.getElementById('processBtn');
+        const drawBboxBtn = document.getElementById('drawBboxBtn');
+        const clearBboxBtn = document.getElementById('clearBboxBtn');
+        const statusText = document.getElementById('statusText');
+        const statusBar = document.getElementById('statusBar');
+        const playbackBar = document.getElementById('playbackBar');
+        const playBtn = document.getElementById('playBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const frameSlider = document.getElementById('frameSlider');
+        const frameInfo = document.getElementById('frameInfo');
+        const legendEl = document.getElementById('legend');
+        const sitesContainer = document.getElementById('sitesContainer');
+
+        // ── Initialize Map ──
+        map = new maplibregl.Map({
+            container: 'map',
+            style: { version: 8, sources: { 'osm-tiles': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '&copy; OpenStreetMap' }}, layers: [{ id: 'osm', type: 'raster', source: 'osm-tiles' }] },
+            center: [-118.32, 34.06],
+            zoom: 11,
+        });
+
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+        map.on('load', () => {
+            // Add bbox rectangle source
+            map.addSource('bbox-rect', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({ id: 'bbox-fill', type: 'fill', source: 'bbox-rect', paint: { 'fill-color': '#4a44cc', 'fill-opacity': 0.1 } });
+            map.addLayer({ id: 'bbox-outline', type: 'line', source: 'bbox-rect', paint: { 'line-color': '#4a44cc', 'line-width': 2 } });
+
+            // Add displacement heatmap source
+            map.addSource('displacement', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({ id: 'displacement-circles', type: 'circle', source: 'displacement', paint: {
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 4, 14, 12],
+                'circle-color': ['interpolate', ['linear'], ['get', 'displacement'],
+                    -30, '#d73027', -20, '#f46d43', -10, '#fdae61', -5, '#fee08b',
+                    0, '#ffffbf', 5, '#d9ef8b'],
+                'circle-opacity': ['get', 'coherence'],
+                'circle-stroke-width': 0,
+            }});
+
+            // Add STAC footprints source
+            map.addSource('stac-footprints', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+            map.addLayer({ id: 'stac-footprints-fill', type: 'fill', source: 'stac-footprints', paint: { 'fill-color': '#22aa66', 'fill-opacity': 0.05 } });
+            map.addLayer({ id: 'stac-footprints-line', type: 'line', source: 'stac-footprints', paint: { 'line-color': '#22aa66', 'line-width': 1, 'line-opacity': 0.4 } });
+
+            searchBtn.disabled = false;
+            loadValidationSites();
+        });
+
+        // ── Bbox drawing ──
+        drawBboxBtn.addEventListener('click', () => {
+            drawingBbox = true;
+            bboxStart = null;
+            drawBboxBtn.textContent = 'Click start corner...';
+            map.getCanvas().style.cursor = 'crosshair';
+        });
+
+        map.on('click', (e) => {
+            if (!drawingBbox) return;
+            if (!bboxStart) {
+                bboxStart = e.lngLat;
+                drawBboxBtn.textContent = 'Click end corner...';
+            } else {
+                const west = Math.min(bboxStart.lng, e.lngLat.lng);
+                const south = Math.min(bboxStart.lat, e.lngLat.lat);
+                const east = Math.max(bboxStart.lng, e.lngLat.lng);
+                const north = Math.max(bboxStart.lat, e.lngLat.lat);
+                bboxInput.value = [west.toFixed(4), south.toFixed(4), east.toFixed(4), north.toFixed(4)].join(', ');
+                drawingBbox = false;
+                bboxStart = null;
+                drawBboxBtn.textContent = 'Draw Rectangle';
+                map.getCanvas().style.cursor = '';
+                clearBboxBtn.disabled = false;
+                updateBboxRect();
+            }
+        });
+
+        clearBboxBtn.addEventListener('click', () => {
+            bboxInput.value = '';
+            clearBboxBtn.disabled = true;
+            map.getSource('bbox-rect').setData({ type: 'FeatureCollection', features: [] });
+        });
+
+        bboxInput.addEventListener('input', updateBboxRect);
+
+        function updateBboxRect() {
+            const bbox = parseBbox();
+            if (!bbox) return;
+            const [w, s, e, n] = bbox;
+            map.getSource('bbox-rect').setData({
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [[[w,s],[e,s],[e,n],[w,n],[w,s]]] }, properties: {} }]
+            });
+        }
+
+        function parseBbox() {
+            const parts = bboxInput.value.split(',').map(s => parseFloat(s.trim()));
+            if (parts.length === 4 && parts.every(p => !isNaN(p))) return parts;
+            return null;
+        }
+
+        // ── STAC Search ──
+        searchBtn.addEventListener('click', doSearch);
+
+        async function doSearch() {
+            const bbox = parseBbox();
+            if (!bbox) { setStatus('Enter a valid bounding box'); return; }
+            searchBtn.disabled = true;
+            setStatus('<span class="spinner"></span>Searching STAC...', true);
+
+            try {
+                const resp = await fetch('/api/stac/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bbox: bbox,
+                        datetime: startDate.value + '/' + endDate.value,
+                        collections: [collection.value],
+                        limit: 100,
+                    }),
+                });
+                if (!resp.ok) throw new Error(await resp.text());
+                stacResults = await resp.json();
+
+                const count = stacResults.features ? stacResults.features.length : 0;
+                setStatus('Found ' + count + ' scenes');
+                statusBar.textContent = count + ' Sentinel-1 scenes found';
+
+                // Show footprints on map
+                if (stacResults.features && stacResults.features.length > 0) {
+                    map.getSource('stac-footprints').setData(stacResults);
+                    processBtn.disabled = false;
+                } else {
+                    processBtn.disabled = true;
+                }
+            } catch (err) {
+                setStatus('Search failed: ' + err.message);
+            } finally {
+                searchBtn.disabled = false;
+            }
+        }
+
+        // ── InSAR Processing ──
+        processBtn.addEventListener('click', doProcess);
+
+        async function doProcess() {
+            const bbox = parseBbox();
+            if (!bbox || !stacResults || !stacResults.features) return;
+
+            processBtn.disabled = true;
+            setStatus('<span class="spinner"></span>Processing InSAR...', true);
+
+            try {
+                const resp = await fetch('/api/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bbox: bbox,
+                        datetime: startDate.value + '/' + endDate.value,
+                        features: stacResults.features.map(f => ({
+                            id: f.id,
+                            properties: {
+                                datetime: f.properties.datetime,
+                                'sar:instrument_mode': f.properties['sar:instrument_mode'],
+                            },
+                        })),
+                    }),
+                });
+                if (!resp.ok) throw new Error(await resp.text());
+                processResult = await resp.json();
+
+                setStatus('Processed ' + processResult.frames.length + ' frames. Max subsidence: ' + processResult.max_subsidence_mm.toFixed(1) + 'mm');
+                statusBar.innerHTML = 'Max subsidence: <span class="value">' + processResult.max_subsidence_mm.toFixed(1) + 'mm</span> | Rate: <span class="value">' + processResult.mean_subsidence_rate_mm_yr.toFixed(1) + 'mm/yr</span>';
+
+                // Show playback controls
+                frameSlider.max = processResult.frames.length - 1;
+                frameSlider.value = 0;
+                currentFrame = 0;
+                playbackBar.classList.add('visible');
+                legendEl.classList.add('visible');
+                drawLegend(processResult.max_subsidence_mm);
+                showFrame(0);
+            } catch (err) {
+                setStatus('Processing failed: ' + err.message);
+            } finally {
+                processBtn.disabled = false;
+            }
+        }
+
+        // ── Playback Controls ──
+        playBtn.addEventListener('click', () => {
+            if (playing) { stopPlayback(); } else { startPlayback(); }
+        });
+        prevBtn.addEventListener('click', () => { if (currentFrame > 0) showFrame(currentFrame - 1); });
+        nextBtn.addEventListener('click', () => { if (processResult && currentFrame < processResult.frames.length - 1) showFrame(currentFrame + 1); });
+        frameSlider.addEventListener('input', () => showFrame(parseInt(frameSlider.value)));
+
+        function startPlayback() {
+            if (!processResult) return;
+            playing = true;
+            playBtn.textContent = 'Pause';
+            playInterval = setInterval(() => {
+                if (currentFrame >= processResult.frames.length - 1) {
+                    currentFrame = 0;
+                }
+                showFrame(currentFrame + 1);
+            }, 500);
+        }
+
+        function stopPlayback() {
+            playing = false;
+            playBtn.textContent = 'Play';
+            clearInterval(playInterval);
+        }
+
+        function showFrame(idx) {
+            if (!processResult || idx < 0 || idx >= processResult.frames.length) return;
+            currentFrame = idx;
+            frameSlider.value = idx;
+
+            const frame = processResult.frames[idx];
+            frameInfo.textContent = frame.date.substring(0, 10) + ' | Frame ' + (idx + 1) + '/' + processResult.frames.length;
+
+            // Build GeoJSON points for this frame
+            const bbox = processResult.bbox;
+            const gw = frame.grid_w;
+            const gh = frame.grid_h;
+            const dx = (bbox[2] - bbox[0]) / gw;
+            const dy = (bbox[3] - bbox[1]) / gh;
+
+            const features = [];
+            for (let row = 0; row < gh; row++) {
+                for (let col = 0; col < gw; col++) {
+                    const i = row * gw + col;
+                    const lon = bbox[0] + (col + 0.5) * dx;
+                    const lat = bbox[1] + (row + 0.5) * dy;
+                    features.push({
+                        type: 'Feature',
+                        geometry: { type: 'Point', coordinates: [lon, lat] },
+                        properties: {
+                            displacement: frame.displacement_mm[i],
+                            coherence: frame.coherence[i],
+                        },
+                    });
+                }
+            }
+
+            map.getSource('displacement').setData({ type: 'FeatureCollection', features: features });
+        }
+
+        function drawLegend(maxMm) {
+            const canvas = document.getElementById('legendGradient');
+            const ctx = canvas.getContext('2d');
+            const h = canvas.height;
+            const colors = [
+                [0, '#d9ef8b'], [0.17, '#ffffbf'], [0.33, '#fee08b'],
+                [0.5, '#fdae61'], [0.67, '#f46d43'], [1.0, '#d73027']
+            ];
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            colors.forEach(([stop, color]) => grad.addColorStop(stop, color));
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 20, h);
+            document.getElementById('legendMax').textContent = '0';
+            document.getElementById('legendMin').textContent = '-' + maxMm.toFixed(0);
+        }
+
+        // ── Validation Sites ──
+        async function loadValidationSites() {
+            try {
+                const resp = await fetch('/api/sites');
+                if (!resp.ok) return;
+                const sites = await resp.json();
+                sitesContainer.innerHTML = '';
+                sites.forEach(site => {
+                    const btn = document.createElement('button');
+                    btn.className = 'site-btn';
+                    btn.innerHTML = '<div class="site-name">' + site.name + '</div><div class="site-desc">' + site.description.substring(0, 80) + '...</div>';
+                    btn.addEventListener('click', () => {
+                        bboxInput.value = site.bbox.join(', ');
+                        const dr = site.date_range.split('/');
+                        startDate.value = dr[0];
+                        endDate.value = dr[1];
+                        clearBboxBtn.disabled = false;
+                        updateBboxRect();
+                        map.fitBounds([[site.bbox[0], site.bbox[1]], [site.bbox[2], site.bbox[3]]], { padding: 50 });
+                    });
+                    sitesContainer.appendChild(btn);
+                });
+            } catch (e) { /* silent */ }
+        }
+
+        function setStatus(html, isHtml) {
+            if (isHtml) statusText.innerHTML = html;
+            else statusText.textContent = html;
+        }
+
+        // Tooltip on hover
+        map.on('mouseenter', 'displacement-circles', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'displacement-circles', () => { map.getCanvas().style.cursor = ''; });
+        map.on('click', 'displacement-circles', (e) => {
+            if (drawingBbox) return;
+            const props = e.features[0].properties;
+            new maplibregl.Popup({ closeOnClick: true })
+                .setLngLat(e.lngLat)
+                .setHTML('<div style="color:#000;font-size:12px"><b>Displacement:</b> ' + props.displacement.toFixed(2) + ' mm<br><b>Coherence:</b> ' + props.coherence.toFixed(3) + '</div>')
+                .addTo(map);
+        });
+    })();
+    </script>
+</body>
+</html>

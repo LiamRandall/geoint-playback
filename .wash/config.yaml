@@ -1,0 +1,13 @@
+version: 2.0.0
+
+build:
+  command: cargo build --workspace --target wasm32-wasip2 --release
+  component_path: target/wasm32-wasip2/release/http_api.wasm
+
+dev:
+  components:
+    - name: task-insar
+      file: target/wasm32-wasip2/release/task_insar.wasm
+
+new:
+  command: cargo fetch
