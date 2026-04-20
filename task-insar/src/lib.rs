@@ -28,6 +28,9 @@ struct ProcessRequest {
     datetime: String,
     /// STAC feature collection (the search results passed through)
     features: Vec<StacFeature>,
+    /// Processing parameters (grid size, coherence threshold, etc.)
+    #[serde(default)]
+    params: insar::ProcessingParams,
 }
 
 #[derive(Deserialize)]
@@ -52,8 +55,13 @@ impl exports::wasmcloud::messaging::handler::Guest for Component {
         let request: ProcessRequest = serde_json::from_slice(&msg.body)
             .map_err(|e| format!("invalid request: {e}"))?;
 
-        let result = insar::process_displacement(&request.bbox, &request.datetime, &request.features)
-            .map_err(|e| format!("processing failed: {e}"))?;
+        let result = insar::process_displacement(
+            &request.bbox,
+            &request.datetime,
+            &request.features,
+            &request.params,
+        )
+        .map_err(|e| format!("processing failed: {e}"))?;
 
         let response_bytes = serde_json::to_vec(&result)
             .map_err(|e| format!("serialize result: {e}"))?;

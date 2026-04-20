@@ -12,6 +12,16 @@
         header { background: #111128; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a4a; z-index: 10; }
         header h1 { font-size: 16px; font-weight: 600; color: #fff; }
         header .subtitle { font-size: 11px; color: #888; margin-left: 12px; }
+        .search-container { position: relative; margin-left: 24px; flex: 0 1 320px; }
+        .search-container input { width: 100%; padding: 6px 10px 6px 28px; background: #1a1a3a; border: 1px solid #333; border-radius: 4px; color: #ddd; font-size: 12px; }
+        .search-container input:focus { outline: none; border-color: #4a44cc; }
+        .search-container .search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: #666; font-size: 13px; pointer-events: none; }
+        .search-results { position: absolute; top: 100%; left: 0; right: 0; background: #111128; border: 1px solid #2a2a4a; border-top: none; border-radius: 0 0 6px 6px; max-height: 260px; overflow-y: auto; z-index: 100; display: none; }
+        .search-results.visible { display: block; }
+        .search-result-item { padding: 8px 10px; font-size: 12px; color: #ccc; cursor: pointer; border-bottom: 1px solid #1e1e3a; }
+        .search-result-item:hover { background: #1e1e3a; color: #fff; }
+        .search-result-item .sr-name { font-weight: 600; }
+        .search-result-item .sr-type { font-size: 10px; color: #888; margin-left: 6px; }
         .app { display: flex; flex: 1; overflow: hidden; position: relative; }
         #map { flex: 1; }
         .panel { position: absolute; top: 10px; left: 10px; width: 320px; background: rgba(17,17,40,0.95); border: 1px solid #2a2a4a; border-radius: 8px; z-index: 5; max-height: calc(100vh - 80px); overflow-y: auto; }
@@ -19,13 +29,21 @@
         .panel-section { padding: 8px 16px 12px; border-bottom: 1px solid #1e1e3a; }
         .panel-section:last-child { border-bottom: none; }
         label { display: block; font-size: 11px; color: #888; margin-bottom: 4px; }
-        input[type="text"], input[type="date"], select { width: 100%; padding: 6px 8px; background: #1a1a3a; border: 1px solid #333; border-radius: 4px; color: #ddd; font-size: 12px; margin-bottom: 8px; }
+        input[type="text"], input[type="number"], input[type="date"], select { width: 100%; padding: 6px 8px; background: #1a1a3a; border: 1px solid #333; border-radius: 4px; color: #ddd; font-size: 12px; margin-bottom: 8px; }
         button { background: #4a44cc; color: #fff; border: none; border-radius: 4px; padding: 7px 14px; font-size: 12px; cursor: pointer; transition: background 0.15s; }
         button:hover { background: #3d38b0; }
         button:disabled { opacity: 0.4; cursor: not-allowed; }
         button.secondary { background: #2a2a4a; color: #ccc; }
         button.secondary:hover { background: #3a3a5a; }
         .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+        .toggle-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+        .toggle-row label { margin-bottom: 0; font-size: 12px; color: #ccc; }
+        .toggle-switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-switch .slider { position: absolute; inset: 0; background: #2a2a4a; border-radius: 10px; cursor: pointer; transition: background 0.2s; }
+        .toggle-switch .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 2px; bottom: 2px; background: #888; border-radius: 50%; transition: transform 0.2s, background 0.2s; }
+        .toggle-switch input:checked + .slider { background: #4a44cc; }
+        .toggle-switch input:checked + .slider::before { transform: translateX(16px); background: #fff; }
         .site-btn { display: block; width: 100%; text-align: left; background: #1a1a3a; border: 1px solid #2a2a4a; border-radius: 4px; padding: 8px 10px; color: #ccc; font-size: 11px; cursor: pointer; margin-bottom: 6px; transition: border-color 0.15s; }
         .site-btn:hover { border-color: #4a44cc; }
         .site-btn .site-name { font-weight: 600; color: #fff; font-size: 12px; }
@@ -34,7 +52,8 @@
         .playback-bar.visible { display: flex; }
         .playback-bar button { padding: 6px 12px; }
         .playback-bar input[type="range"] { flex: 1; accent-color: #4a44cc; min-width: 200px; }
-        .playback-bar .frame-info { font-size: 11px; color: #aaa; min-width: 160px; white-space: nowrap; }
+        .playback-bar .frame-date { font-size: 16px; font-weight: 700; color: #fff; min-width: 110px; text-align: center; letter-spacing: 0.5px; }
+        .playback-bar .frame-info { font-size: 11px; color: #aaa; min-width: 100px; white-space: nowrap; }
         .status-bar { position: absolute; bottom: 20px; right: 20px; background: rgba(17,17,40,0.9); border: 1px solid #2a2a4a; border-radius: 6px; padding: 8px 14px; font-size: 11px; color: #888; z-index: 5; max-width: 300px; }
         .status-bar .value { color: #4a44cc; font-weight: 600; }
         .legend { position: absolute; bottom: 70px; right: 20px; background: rgba(17,17,40,0.9); border: 1px solid #2a2a4a; border-radius: 6px; padding: 10px 14px; z-index: 5; display: none; }
@@ -52,6 +71,11 @@
         <div style="display:flex;align-items:baseline">
             <h1>GeointPlayback</h1>
             <span class="subtitle">InSAR Ground Subsidence Detection & Playback</span>
+        </div>
+        <div class="search-container">
+            <span class="search-icon">&#x1F50D;</span>
+            <input type="text" id="placeSearch" placeholder="Search for a city, country, or place...">
+            <div class="search-results" id="searchResults"></div>
         </div>
     </header>
     <div class="app">
@@ -79,6 +103,8 @@
                 <select id="collection">
                     <option value="sentinel-1-grd">Sentinel-1 GRD</option>
                 </select>
+                <label>Max Scenes</label>
+                <input type="number" id="maxScenes" value="50" min="1" max="500" step="10">
             </div>
 
             <h2>Actions</h2>
@@ -88,6 +114,28 @@
                     <button id="processBtn" disabled>Process InSAR</button>
                 </div>
                 <div id="statusText" style="font-size:11px; color:#888; margin-top:8px;"></div>
+            </div>
+
+            <h2>Processing</h2>
+            <div class="panel-section">
+                <label>Grid Density: <span id="gridSizeLabel">20</span>x<span id="gridSizeLabel2">20</span></label>
+                <input type="range" id="gridSize" min="10" max="100" value="20" step="5" style="accent-color:#4a44cc">
+                <div style="display:flex; justify-content:space-between; font-size:9px; color:#555; margin-top:-4px; margin-bottom:8px;"><span>10 (fast)</span><span>50 (balanced)</span><span>100 (dense)</span></div>
+                <label>Coherence Threshold: <span id="cohLabel">0.40</span></label>
+                <input type="range" id="cohThreshold" min="0" max="0.8" value="0.4" step="0.05" style="accent-color:#4a44cc">
+                <div style="display:flex; justify-content:space-between; font-size:9px; color:#555; margin-top:-4px; margin-bottom:4px;"><span>0.0 (all pixels)</span><span>0.4 (default)</span><span>0.8 (strict)</span></div>
+            </div>
+
+            <h2>Visualization</h2>
+            <div class="panel-section">
+                <div class="toggle-row">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="interpolateToggle">
+                        <span class="slider"></span>
+                    </label>
+                    <label for="interpolateToggle">Interpolate (fill gaps)</label>
+                </div>
+                <div style="font-size:10px; color:#666; margin-top:6px;">IDW interpolation between measured points. Smooth but values between points are estimated, not measured.</div>
             </div>
 
             <h2>Validation Sites</h2>
@@ -101,6 +149,7 @@
             <button id="playBtn">Play</button>
             <button id="nextBtn" class="secondary">&gt;</button>
             <input type="range" id="frameSlider" min="0" max="0" value="0">
+            <div class="frame-date" id="frameDate">-</div>
             <div class="frame-info" id="frameInfo">-</div>
         </div>
 
@@ -130,12 +179,14 @@
         let playInterval = null;
         let drawingBbox = false;
         let bboxStart = null;
+        let searchDebounce = null;
 
         // ── DOM refs ──
         const bboxInput = document.getElementById('bboxInput');
         const startDate = document.getElementById('startDate');
         const endDate = document.getElementById('endDate');
         const collection = document.getElementById('collection');
+        const maxScenesInput = document.getElementById('maxScenes');
         const searchBtn = document.getElementById('searchBtn');
         const processBtn = document.getElementById('processBtn');
         const drawBboxBtn = document.getElementById('drawBboxBtn');
@@ -150,11 +201,80 @@
         const frameInfo = document.getElementById('frameInfo');
         const legendEl = document.getElementById('legend');
         const sitesContainer = document.getElementById('sitesContainer');
+        const placeSearchInput = document.getElementById('placeSearch');
+        const searchResultsEl = document.getElementById('searchResults');
+        const interpolateToggle = document.getElementById('interpolateToggle');
+        const gridSizeSlider = document.getElementById('gridSize');
+        const gridSizeLabel = document.getElementById('gridSizeLabel');
+        const gridSizeLabel2 = document.getElementById('gridSizeLabel2');
+        const cohThresholdSlider = document.getElementById('cohThreshold');
+        const cohLabel = document.getElementById('cohLabel');
+        const frameDate = document.getElementById('frameDate');
 
-        // ── Initialize Map ──
+        gridSizeSlider.addEventListener('input', () => {
+            gridSizeLabel.textContent = gridSizeSlider.value;
+            gridSizeLabel2.textContent = gridSizeSlider.value;
+        });
+        cohThresholdSlider.addEventListener('input', () => {
+            cohLabel.textContent = parseFloat(cohThresholdSlider.value).toFixed(2);
+        });
+
+        // ── Place search (geocoding via Nominatim) ──
+        placeSearchInput.addEventListener('input', () => {
+            clearTimeout(searchDebounce);
+            const q = placeSearchInput.value.trim();
+            if (q.length < 2) { searchResultsEl.classList.remove('visible'); return; }
+            searchDebounce = setTimeout(() => geocodeSearch(q), 300);
+        });
+
+        placeSearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { searchResultsEl.classList.remove('visible'); placeSearchInput.blur(); }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) searchResultsEl.classList.remove('visible');
+        });
+
+        async function geocodeSearch(query) {
+            try {
+                const resp = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=en&q=' + encodeURIComponent(query));
+                if (!resp.ok) return;
+                const results = await resp.json();
+                searchResultsEl.innerHTML = '';
+                if (results.length === 0) {
+                    searchResultsEl.innerHTML = '<div class="search-result-item" style="color:#666">No results found</div>';
+                    searchResultsEl.classList.add('visible');
+                    return;
+                }
+                results.forEach(r => {
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+                    const typeLabel = r.type ? r.type.replace(/_/g, ' ') : '';
+                    item.innerHTML = '<span class="sr-name">' + escapeHtml(r.display_name.split(',').slice(0, 2).join(', ')) + '</span><span class="sr-type">' + typeLabel + '</span>';
+                    item.addEventListener('click', () => {
+                        searchResultsEl.classList.remove('visible');
+                        placeSearchInput.value = r.display_name.split(',').slice(0, 2).join(', ');
+                        if (r.boundingbox) {
+                            const [s, n, w, e] = r.boundingbox.map(Number);
+                            map.fitBounds([[w, s], [e, n]], { padding: 60, maxZoom: 14 });
+                        } else {
+                            map.flyTo({ center: [parseFloat(r.lon), parseFloat(r.lat)], zoom: 12 });
+                        }
+                    });
+                    searchResultsEl.appendChild(item);
+                });
+                searchResultsEl.classList.add('visible');
+            } catch (e) { /* silent */ }
+        }
+
+        function escapeHtml(s) {
+            const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+        }
+
+        // ── Initialize Map (English labels via CARTO) ──
         map = new maplibregl.Map({
             container: 'map',
-            style: { version: 8, sources: { 'osm-tiles': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '&copy; OpenStreetMap' }}, layers: [{ id: 'osm', type: 'raster', source: 'osm-tiles' }] },
+            style: { version: 8, sources: { 'carto-tiles': { type: 'raster', tiles: ['https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'], tileSize: 256, attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }}, layers: [{ id: 'carto', type: 'raster', source: 'carto-tiles' }] },
             center: [-118.32, 34.06],
             zoom: 11,
         });
@@ -170,17 +290,20 @@
             // Add displacement heatmap source
             map.addSource('displacement', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
             map.addLayer({ id: 'displacement-circles', type: 'circle', source: 'displacement', paint: {
-                'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 4, 14, 12],
+                'circle-radius': ['interpolate', ['linear'], ['zoom'],
+                    8, ['get', 'radius_lo'],
+                    14, ['get', 'radius_hi']
+                ],
                 'circle-color': ['interpolate', ['linear'], ['get', 'displacement'],
                     -30, '#d73027', -20, '#f46d43', -10, '#fdae61', -5, '#fee08b',
                     0, '#ffffbf', 5, '#d9ef8b'],
-                'circle-opacity': ['get', 'coherence'],
+                'circle-opacity': ['get', 'opacity'],
                 'circle-stroke-width': 0,
             }});
 
             // Add STAC footprints source
             map.addSource('stac-footprints', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-            map.addLayer({ id: 'stac-footprints-fill', type: 'fill', source: 'stac-footprints', paint: { 'fill-color': '#22aa66', 'fill-opacity': 0.05 } });
+            map.addLayer({ id: 'stac-footprints-fill', type: 'fill', source: 'stac-footprints', paint: { 'fill-color': '#22aa66', 'fill-opacity': 0.001 } });
             map.addLayer({ id: 'stac-footprints-line', type: 'line', source: 'stac-footprints', paint: { 'line-color': '#22aa66', 'line-width': 1, 'line-opacity': 0.4 } });
 
             searchBtn.disabled = false;
@@ -256,21 +379,34 @@
                         bbox: bbox,
                         datetime: startDate.value + '/' + endDate.value,
                         collections: [collection.value],
-                        limit: 100,
+                        limit: parseInt(maxScenesInput.value) || 50,
                     }),
                 });
                 if (!resp.ok) throw new Error(await resp.text());
                 stacResults = await resp.json();
 
-                const count = stacResults.features ? stacResults.features.length : 0;
-                setStatus('Found ' + count + ' scenes');
-                statusBar.textContent = count + ' Sentinel-1 scenes found';
-
-                // Show footprints on map
                 if (stacResults.features && stacResults.features.length > 0) {
+                    // Sort scenes chronologically by datetime
+                    stacResults.features.sort((a, b) => {
+                        const da = a.properties.datetime || '';
+                        const db = b.properties.datetime || '';
+                        return da.localeCompare(db);
+                    });
+
+                    const dates = stacResults.features
+                        .map(f => (f.properties.datetime || '').substring(0, 10))
+                        .filter(d => d.length === 10);
+                    const firstDate = dates[0] || '?';
+                    const lastDate = dates[dates.length - 1] || '?';
+                    const count = stacResults.features.length;
+
+                    setStatus('Found ' + count + ' scenes (' + firstDate + ' to ' + lastDate + ')');
+                    statusBar.textContent = count + ' scenes: ' + firstDate + ' \u2192 ' + lastDate;
+
                     map.getSource('stac-footprints').setData(stacResults);
                     processBtn.disabled = false;
                 } else {
+                    setStatus('No scenes found for this area and date range');
                     processBtn.disabled = true;
                 }
             } catch (err) {
@@ -278,6 +414,21 @@
             } finally {
                 searchBtn.disabled = false;
             }
+        }
+
+        // ── Scene sampling ──
+        // The STAC API may return scenes clustered in one period.
+        // This function selects scenes evenly spread across the time range.
+        function sampleScenesEvenly(features, maxCount) {
+            if (features.length <= maxCount) return features;
+
+            // Features should already be sorted chronologically
+            const step = (features.length - 1) / (maxCount - 1);
+            const sampled = [];
+            for (let i = 0; i < maxCount; i++) {
+                sampled.push(features[Math.round(i * step)]);
+            }
+            return sampled;
         }
 
         // ── InSAR Processing ──
@@ -288,7 +439,14 @@
             if (!bbox || !stacResults || !stacResults.features) return;
 
             processBtn.disabled = true;
-            setStatus('<span class="spinner"></span>Processing InSAR...', true);
+
+            // Use all scenes — they're already sorted from STAC search.
+            // For very large stacks, sample evenly to keep processing tractable.
+            const maxProcessScenes = 200;
+            const scenesToProcess = sampleScenesEvenly(stacResults.features, maxProcessScenes);
+            const skipped = stacResults.features.length - scenesToProcess.length;
+            const skipNote = skipped > 0 ? ' (sampled ' + scenesToProcess.length + ' of ' + stacResults.features.length + ' evenly across range)' : '';
+            setStatus('<span class="spinner"></span>Processing InSAR' + skipNote + '...', true);
 
             try {
                 const resp = await fetch('/api/process', {
@@ -297,19 +455,25 @@
                     body: JSON.stringify({
                         bbox: bbox,
                         datetime: startDate.value + '/' + endDate.value,
-                        features: stacResults.features.map(f => ({
+                        features: scenesToProcess.map(f => ({
                             id: f.id,
                             properties: {
                                 datetime: f.properties.datetime,
                                 'sar:instrument_mode': f.properties['sar:instrument_mode'],
                             },
                         })),
+                        params: {
+                            grid_size: parseInt(gridSizeSlider.value),
+                            min_coherence: parseFloat(cohThresholdSlider.value),
+                        },
                     }),
                 });
                 if (!resp.ok) throw new Error(await resp.text());
                 processResult = await resp.json();
 
-                setStatus('Processed ' + processResult.frames.length + ' frames. Max subsidence: ' + processResult.max_subsidence_mm.toFixed(1) + 'mm');
+                const p = processResult.processing || {};
+                const apsNote = p.atmospheric_correction ? ', APS corrected' : '';
+                setStatus('Processed ' + processResult.frames.length + ' frames (' + (p.n_scenes||'?') + ' scenes, ' + (p.grid_size||'?') + 'x' + (p.grid_size||'?') + ' grid' + apsNote + '). Max subsidence: ' + processResult.max_subsidence_mm.toFixed(1) + 'mm');
                 statusBar.innerHTML = 'Max subsidence: <span class="value">' + processResult.max_subsidence_mm.toFixed(1) + 'mm</span> | Rate: <span class="value">' + processResult.mean_subsidence_rate_mm_yr.toFixed(1) + 'mm/yr</span>';
 
                 // Show playback controls
@@ -353,39 +517,105 @@
             clearInterval(playInterval);
         }
 
+        // Re-render current frame when interpolation is toggled
+        interpolateToggle.addEventListener('change', () => { showFrame(currentFrame); });
+
         function showFrame(idx) {
             if (!processResult || idx < 0 || idx >= processResult.frames.length) return;
             currentFrame = idx;
             frameSlider.value = idx;
 
             const frame = processResult.frames[idx];
-            frameInfo.textContent = frame.date.substring(0, 10) + ' | Frame ' + (idx + 1) + '/' + processResult.frames.length;
+            frameDate.textContent = frame.date.substring(0, 10);
+            frameInfo.textContent = 'Frame ' + (idx + 1) + '/' + processResult.frames.length;
 
-            // Build GeoJSON points for this frame
             const bbox = processResult.bbox;
             const gw = frame.grid_w;
             const gh = frame.grid_h;
             const dx = (bbox[2] - bbox[0]) / gw;
             const dy = (bbox[3] - bbox[1]) / gh;
 
-            const features = [];
+            // Collect measured points with their positions
+            const measured = [];
             for (let row = 0; row < gh; row++) {
                 for (let col = 0; col < gw; col++) {
                     const i = row * gw + col;
-                    const lon = bbox[0] + (col + 0.5) * dx;
-                    const lat = bbox[1] + (row + 0.5) * dy;
+                    measured.push({
+                        lon: bbox[0] + (col + 0.5) * dx,
+                        lat: bbox[1] + (row + 0.5) * dy,
+                        displacement: frame.displacement_mm[i],
+                        coherence: frame.coherence[i],
+                    });
+                }
+            }
+
+            const features = [];
+            if (interpolateToggle.checked) {
+                // IDW interpolation: generate a denser grid (4x resolution)
+                const interpFactor = 4;
+                const iw = gw * interpFactor;
+                const ih = gh * interpFactor;
+                const idx2 = (bbox[2] - bbox[0]) / iw;
+                const idy2 = (bbox[3] - bbox[1]) / ih;
+
+                for (let row = 0; row < ih; row++) {
+                    for (let col = 0; col < iw; col++) {
+                        const lon = bbox[0] + (col + 0.5) * idx2;
+                        const lat = bbox[1] + (row + 0.5) * idy2;
+                        const result = idwInterpolate(lon, lat, measured, 2.0);
+                        features.push({
+                            type: 'Feature',
+                            geometry: { type: 'Point', coordinates: [lon, lat] },
+                            properties: {
+                                displacement: result.displacement,
+                                coherence: result.coherence,
+                                opacity: 0.85,
+                                radius_lo: 2,
+                                radius_hi: 6,
+                            },
+                        });
+                    }
+                }
+            } else {
+                // Original sparse points
+                for (const m of measured) {
                     features.push({
                         type: 'Feature',
-                        geometry: { type: 'Point', coordinates: [lon, lat] },
+                        geometry: { type: 'Point', coordinates: [m.lon, m.lat] },
                         properties: {
-                            displacement: frame.displacement_mm[i],
-                            coherence: frame.coherence[i],
+                            displacement: m.displacement,
+                            coherence: m.coherence,
+                            opacity: m.coherence,
+                            radius_lo: 4,
+                            radius_hi: 12,
                         },
                     });
                 }
             }
 
             map.getSource('displacement').setData({ type: 'FeatureCollection', features: features });
+        }
+
+        /**
+         * Inverse Distance Weighting interpolation.
+         * @param {number} lon - query longitude
+         * @param {number} lat - query latitude
+         * @param {Array} points - measured points with .lon, .lat, .displacement, .coherence
+         * @param {number} power - distance power (2.0 is standard)
+         */
+        function idwInterpolate(lon, lat, points, power) {
+            let wSum = 0, dSum = 0, cSum = 0;
+            for (const p of points) {
+                const dlat = (lat - p.lat) * 111320;
+                const dlon = (lon - p.lon) * 111320 * Math.cos(lat * Math.PI / 180);
+                const dist = Math.sqrt(dlat * dlat + dlon * dlon);
+                if (dist < 0.001) return { displacement: p.displacement, coherence: p.coherence };
+                const w = 1.0 / Math.pow(dist, power);
+                wSum += w;
+                dSum += w * p.displacement;
+                cSum += w * p.coherence;
+            }
+            return { displacement: dSum / wSum, coherence: cSum / wSum };
         }
 
         function drawLegend(maxMm) {
