@@ -204,3 +204,75 @@ GeointPlayback/
 └── tests/
     └── test_api.sh           # API integration test suite
 ```
+
+## Wasm Component Analysis
+
+### Size
+
+| Component | File | Size |
+|-----------|------|------|
+| http-api | `target/wasm32-wasip2/release/http_api.wasm` | **393 KB** |
+| task-insar | `target/wasm32-wasip2/release/task_insar.wasm` | **148 KB** |
+
+Both components are extremely small. The http-api is ~2.6x larger because it embeds `ui.html` via `include_str!` and carries the full `wasi:http` type system (request/response resources, error codes, TLS types, etc.). These sizes are well within cold-start and distribution budgets for edge/serverless deployment.
+
+### WIT Contracts
+
+Inspected via `wasm-tools component wit`.
+
+#### `task_insar.wasm` — Minimal messaging worker
+
+```wit
+world root {
+  import wasmcloud:messaging/types@0.2.0
+  import wasmcloud:messaging/consumer@0.2.0
+  import wasi:io/*@0.2.9
+  import wasi:cli/*@0.2.9
+
+  export wasmcloud:messaging/handler@0.2.0
+}
+```
+
+One export, two meaningful imports. This component only receives a `broker-message` (subject + body + optional reply-to) and can publish messages back. The `wasi:cli` imports are standard I/O plumbing (stdout/stderr/env/exit). No filesystem, no network, no HTTP.
+
+#### `http_api.wasm` — HTTP gateway
+
+```wit
+world root {
+  import wasi:http/types@0.2.9
+  import wasi:http/outgoing-handler@0.2.9    -- make outbound HTTP calls
+  import wasmcloud:messaging/types@0.2.0
+  import wasmcloud:messaging/consumer@0.2.0  -- publish to NATS (request/reply)
+  import wasi:random/insecure-seed@0.2.9
+  import wasi:clocks/monotonic-clock@0.2.9
+  import wasi:io/*@0.2.9
+  import wasi:cli/*@0.2.9
+
+  export wasi:http/incoming-handler@0.2.9
+}
+```
+
+Slightly broader — adds outbound HTTP (for STAC API proxy), a clock, and an insecure PRNG seed. Still no filesystem, no sockets, no threads.
+
+### Security Risk Surface
+
+The security posture of both components is **very low risk**:
+
+1. **No filesystem access** — neither component imports `wasi:filesystem`. They cannot read or write files on the host. The UI is baked in at compile time.
+
+2. **No raw networking** — `http_api` can make outbound HTTP requests via `wasi:http/outgoing-handler`, but this is mediated by the wasmCloud host. The host policy controls which URLs are reachable. `task_insar` has zero network capability — it only talks via NATS messages.
+
+3. **No ambient authority** — the component model is deny-by-default. Each capability (messaging, HTTP, clock) must be explicitly linked by the wasmCloud host. A compromised component cannot escalate beyond its declared imports.
+
+4. **`insecure-seed` only** — `http_api` uses `wasi:random/insecure-seed`, not `wasi:random/random`. This is fine for non-cryptographic use (e.g., HashMap randomization) but confirms no cryptographic key generation happens inside the component.
+
+5. **Message boundary is `list<u8>`** — both components exchange raw bytes over NATS. Input validation of the JSON payload is the main trust boundary to audit (in both `handle-message` and the HTTP route handlers).
+
+6. **Narrow dependency footprint** — ~30 unique crates per component. The dependency trees are dominated by `serde`, `wit-bindgen` tooling (proc-macro-time only), and `wstd`. No `unsafe`-heavy crates, no C FFI, no `openssl`/`ring`. Supply chain attack surface is minimal.
+
+### Maintainability
+
+- **Two components, ~148 + 393 KB** — trivial to audit, version, and deploy independently.
+- **WIT contracts target stable WASI 0.2.9 + wasmCloud messaging 0.2.0** — well-defined, typed interfaces with no custom extensions.
+- **Single-file UI** — no frontend build tooling; updating `ui.html` requires only recompiling `http_api`.
+- Shared dependency tree means `cargo update` touches both components uniformly.
