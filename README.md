@@ -11,10 +11,10 @@ A wasmCloud-native InSAR ground subsidence detector that queries Sentinel-1 GRD 
 ## Architecture
 
 ```
-                          ┌─────────────────────────────────────────────────────────┐
-                          │                    wasmCloud Host                       │
-                          │                                                         │
-┌────────────────┐   HTTP │  ┌──────────────────┐  NATS   ┌──────────────────────┐  │
+                          ┌──────────────────────────────────────────────────────────┐
+                          │                  wasmCloud 2.0 Host                      │
+                          │                                                          │
+┌────────────────┐   HTTP │  ┌───────────────────┐  NATS   ┌──────────────────────┐  │
 │                │───────▶│  │    http-api       │────────▶│     task-insar       │  │
 │   Browser UI   │        │  │   (wasm32-wasip2) │         │   (wasm32-wasip2)    │  │
 │                │◀───────│  │                   │◀────────│                      │  │
@@ -24,9 +24,9 @@ A wasmCloud-native InSAR ground subsidence detector that queries Sentinel-1 GRD 
 │  geocoding     │        │  │  /api/stac/search │         │  - Goldstein filter  │  │
 │  IDW interp    │        │  │  /api/process     │         │  - SBAS stacking     │  │
 │                │        │  │                   │         │  - APS removal       │  │
-└────────────────┘        │  └────────┬─────────┘         │  - Coherence gating  │  │
+└────────────────┘        │  └────────┬──────────┘         │  - Coherence gating  │  │
                           │           │                    └──────────────────────┘  │
-                          └───────────┼─────────────────────────────────────────────┘
+                          └───────────┼──────────────────────────────────────────────┘
                                       │ HTTPS
                                       ▼
                              ┌──────────────────┐
