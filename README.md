@@ -2,6 +2,12 @@
 
 A wasmCloud-native InSAR ground subsidence detector that queries Sentinel-1 GRD scenes via the OGC STAC API (Earth Search), processes interferometric displacement time-series using SBAS stacking, Goldstein filtering, multi-looking, and per-pixel Local Incidence Angle correction in Rust/WebAssembly, and renders animated subsidence maps on a MapLibre GL JS frontend with IDW interpolation and coherence-gated visualization.
 
+## Example
+
+![LA Metro Purple Line Extension — InSAR subsidence visualization](LosAngeles-CA-USA-purple-line-metro-extension.png)
+
+**LA Metro Purple Line Extension, Los Angeles, CA** — Twin tunnel boring through downtown Los Angeles along Wilshire Blvd. InSAR studies detected up to 15mm of ground subsidence along the corridor. This visualization shows cumulative displacement from a Sentinel-1 GRD stack (2019-2024), processed with a 20x20 grid, coherence threshold 0.4, and SBAS atmospheric correction. Red pixels indicate subsidence concentrated along the tunnel alignment; green pixels are stable ground. The popup shows a measured displacement of -125.09mm with 0.91 coherence at a selected point, and interpolation is enabled to fill gaps between persistent scatterer locations.
+
 ## Architecture
 
 ```
