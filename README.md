@@ -4,9 +4,9 @@ A wasmCloud-native InSAR ground subsidence detector that queries Sentinel-1 GRD 
 
 ## Example
 
-![LA Metro Purple Line Extension — InSAR subsidence visualization](LosAngeles-CA-USA-purple-line-metro-extension.png)
-
 **LA Metro Purple Line Extension, Los Angeles, CA** — Twin tunnel boring through downtown Los Angeles along Wilshire Blvd. InSAR studies detected up to 15mm of ground subsidence along the corridor. This visualization shows cumulative displacement from a Sentinel-1 GRD stack (2019-2024), processed with a 20x20 grid, coherence threshold 0.4, and SBAS atmospheric correction. Red pixels indicate subsidence concentrated along the tunnel alignment; green pixels are stable ground. The popup shows a measured displacement of -125.09mm with 0.91 coherence at a selected point, and interpolation is enabled to fill gaps between persistent scatterer locations.
+
+![LA Metro Koreatown Tunnel Expansion, SAR detection](geoint-sar-tunnel-detection-LA-koreatown-expansion.gif) 
 
 ## Architecture
 
